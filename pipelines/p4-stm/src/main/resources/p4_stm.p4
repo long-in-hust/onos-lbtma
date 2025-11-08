@@ -3,10 +3,14 @@
 
 #define CPU_PORT 255
 
+typedef bit<9>  egressSpec_t;
+typedef bit<48> macAddr_t;
+typedef bit<32> ip4Addr_t;
+
 // Define standard headers (Ethernet, IPv4, TCP)
 header ethernet_t {
-    bit<48> dstAddr;
-    bit<48> srcAddr;
+    macAddr_t dstAddr;
+    macAddr_t srcAddr;
     bit<16> etherType;
 }
 
@@ -40,15 +44,34 @@ header ipv4_t {
     bit<8>  ttl;
     bit<8>  protocol;
     bit<16> hdrChecksum;
-    bit<32> srcAddr;
-    bit<32> dstAddr;
+    ip4Addr_t srcAddr;
+    ip4Addr_t dstAddr;
+}
+
+header ipv6_t {
+    bit<4>  version;
+    bit<8>  trafficClass;
+    bit<20> flowLabel;
+    bit<16> payloadLength;
+    bit<8>  nextHdr;
+    bit<8>  hopLimit;
+    bit<128> srcAddr;
+    bit<128> dstAddr;
 }
 
 header icmp_t {
     bit<8>  type;
     bit<8>  code;
     bit<16> checksum;
-    bit<32> rest_of_header; // Covers the 4-byte ID and Sequence Number fields
+    bit<32> body; // Covers the 4-byte ID and Sequence Number fields
+}
+
+
+header icmpv6_t {
+    bit<8>  type;
+    bit<8>  code;
+    bit<16> checksum;
+    bit<32> body; // Covers the 4-byte ID and Sequence Number fields
 }
 
 header tcp_t {
@@ -88,7 +111,9 @@ struct headers_t {
   vlan_tag_t vlan;
   arp_t arp;
   ipv4_t ipv4;
+  ipv6_t ipv6;
   icmp_t icmp;
+  icmpv6_t icmpv6;
   udp_t udp;
   tcp_t tcp;
   cpu_in_header_t cpu_in;
@@ -124,6 +149,7 @@ parser MyParser(packet_in packet,
             0x0800: parse_ipv4; // IPv4
             0x8100: parse_vlan; // VLAN (802.1Q)
             0x0806: parse_arp;  // ARP
+            0x86dd: parse_ipv6;
             default: accept;
         }
     }
@@ -134,6 +160,7 @@ parser MyParser(packet_in packet,
         transition select(hdr.vlan.nextEtherType) {
             0x0800: parse_ipv4; // IPv4 *after* VLAN tag
             0x0806: parse_arp;  // ARP *after* VLAN tag
+            0x86dd: parse_ipv6;
             default: accept;
         }
     }
@@ -141,15 +168,30 @@ parser MyParser(packet_in packet,
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol) {
+            6: parse_tcp;
+            17: parse_udp;
+            1: parse_icmp;
+            default: accept;
+        }
+    }
+
+    state parse_ipv6 {
+        packet.extract(hdr.ipv6);
+        transition select(hdr.ipv6.nextHdr) {
             6: parse_tcp; // TCP
             17: parse_udp; // UDP
-            1: parse_icmp;
+            58: parse_icmpv6;
             default: accept;
         }
     }
 
     state parse_icmp {
         packet.extract(hdr.icmp);
+        transition accept;
+    }
+
+    state parse_icmpv6 {
+        packet.extract(hdr.icmpv6);
         transition accept;
     }
 
@@ -200,6 +242,7 @@ control IngressControl(inout headers_t hdr,
         register_last_seen.write((bit<32>)meta.flow_id, meta.timestamp);
     }
 
+    @default_only
     table state_table {
         key = {
             hdr.ipv4.srcAddr : exact;
@@ -214,6 +257,31 @@ control IngressControl(inout headers_t hdr,
         }
         size = 1024;
         default_action = create_new_entry;
+    }
+
+    // forwarding
+    action drop() {
+        mark_to_drop(standard_meta);
+    }
+
+    action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
+        standard_meta.egress_spec = port;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+        hdr.ethernet.dstAddr = dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+
+    table ipv4_lpm {
+        key = {
+            hdr.ipv4.dstAddr: lpm;
+        }
+        actions = {
+            ipv4_forward;
+            drop;
+            NoAction;
+        }
+        size = 1024;
+        default_action = drop();
     }
     
     apply {
@@ -234,8 +302,11 @@ control IngressControl(inout headers_t hdr,
         }
 
         // Perform match-action using the state table
-        if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
-            state_table.apply();
+        if (hdr.ipv4.isValid()) {
+            if (hdr.tcp.isValid()) {
+                state_table.apply();
+            }
+            ipv4_lpm.apply();
         }
     }
 }
@@ -243,6 +314,7 @@ control IngressControl(inout headers_t hdr,
 control EgressControl(inout headers_t hdr,
                       inout metadata_t meta,
                       inout standard_metadata_t standard_meta) {
+    
     apply {
         if (standard_meta.egress_port == CPU_PORT) {
             // *** TODO EXERCISE 4

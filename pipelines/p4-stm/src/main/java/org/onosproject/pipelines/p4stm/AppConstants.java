@@ -77,6 +77,8 @@ public final class AppConstants {
     // -- Table IDs --
     public static final PiTableId INGRESS_STATE_TABLE =
             PiTableId.of("IngressControl.state_table");
+    public static final PiTableId INGRESS_FWD4_TABLE =
+            PiTableId.of("IngressControl.state_table");
 
     // Action IDs
     public static final PiActionId INGRESS_STATE_TABLE_UPDATE =
