@@ -17,6 +17,7 @@
 package org.onosproject.pipelines.p4stm;
 
 import org.onosproject.net.pi.model.PiActionId;
+import org.onosproject.net.pi.model.PiActionParamId;
 // import org.onosproject.net.pi.model.PiActionParamId;
 // import org.onosproject.net.pi.model.PiActionProfileId;
 // import org.onosproject.net.pi.model.PiMeterId;
@@ -36,53 +37,64 @@ public final class AppConstants {
     // -- Header field IDs --
     // Ethernet
     public static final PiMatchFieldId HDR_HDR_ETHERNET_ETHER_TYPE =
-            PiMatchFieldId.of("hdr.ethernet.ether_type");
+        PiMatchFieldId.of("hdr.ethernet.ether_type");
     public static final PiMatchFieldId HDR_HDR_ETHERNET_SRC_ADDR =
-            PiMatchFieldId.of("hdr.ethernet.src_addr");
+        PiMatchFieldId.of("hdr.ethernet.src_addr");
     public static final PiMatchFieldId HDR_HDR_ETHERNET_DST_ADDR =
-            PiMatchFieldId.of("hdr.ethernet.dst_addr");
+        PiMatchFieldId.of("hdr.ethernet.dst_addr");
 
     // IPv4
     public static final PiMatchFieldId HDR_HDR_IPV4_PROTOCOL =
-            PiMatchFieldId.of("hdr.ipv4.protocol");
+        PiMatchFieldId.of("hdr.ipv4.protocol");
     public static final PiMatchFieldId HDR_HDR_IPV4_SRC_ADDR =
-            PiMatchFieldId.of("hdr.ipv4.src_addr");
+        PiMatchFieldId.of("hdr.ipv4.src_addr");
     public static final PiMatchFieldId HDR_HDR_IPV4_DST_ADDR =
-            PiMatchFieldId.of("hdr.ipv4.dst_addr");
+        PiMatchFieldId.of("hdr.ipv4.dst_addr");
 
     // TCP
     public static final PiMatchFieldId HDR_HDR_TCP_SRC_PORT =
-            PiMatchFieldId.of("hdr.tcp.srcPort");
+        PiMatchFieldId.of("hdr.tcp.srcPort");
     public static final PiMatchFieldId HDR_HDR_TCP_DST_PORT =
-            PiMatchFieldId.of("hdr.tcp.dstPort");
+        PiMatchFieldId.of("hdr.tcp.dstPort");
 
     // CPU
     public static final PiMatchFieldId HDR_HDR_CPU_OUT_EGRESS_PORT =
-            PiMatchFieldId.of("hdr.cpu_out.egress_port");
+        PiMatchFieldId.of("hdr.cpu_out.egress_port");
     public static final PiMatchFieldId HDR_HDR_CPU_IB_INGRESS_PORT =
-            PiMatchFieldId.of("hdr.cpu_in.ingress_port");
+        PiMatchFieldId.of("hdr.cpu_in.ingress_port");
 
     // --Standard Metadata--
     public static final PiMatchFieldId HDR_STANDARD_METADATA_INGRESS_PORT =
-            PiMatchFieldId.of("standard_meta.ingress_port");
+        PiMatchFieldId.of("standard_meta.ingress_port");
     public static final PiMatchFieldId HDR_STANDARD_METADATA_PACKET_LENGTH =
-            PiMatchFieldId.of("standard_meta.packet_length");
+        PiMatchFieldId.of("standard_meta.packet_length");
     public static final PiMatchFieldId HDR_STANDARD_METADATA_EGRESS_SPEC =
-            PiMatchFieldId.of("standard_meta.egress_spec");
+        PiMatchFieldId.of("standard_meta.egress_spec");
     public static final PiMatchFieldId HDR_STANDARD_METADATA_EGRESS_PORT =
-            PiMatchFieldId.of("standard_meta.egress_port");
+        PiMatchFieldId.of("standard_meta.egress_port");
     public static final PiMatchFieldId HDR_STANDARD_METADATA_INGRESS_GLOBAL_TIMESTAMP =
-            PiMatchFieldId.of("standard_meta.ingress_global_timestamp");
+        PiMatchFieldId.of("standard_meta.ingress_global_timestamp");
 
     // -- Table IDs --
     public static final PiTableId INGRESS_STATE_TABLE =
-            PiTableId.of("IngressControl.state_table");
+        PiTableId.of("IngressControl.state_table");
     public static final PiTableId INGRESS_FWD4_TABLE =
-            PiTableId.of("IngressControl.state_table");
+        PiTableId.of("IngressControl.ipv4_lpm");
 
     // Action IDs
     public static final PiActionId INGRESS_STATE_TABLE_UPDATE =
-            PiActionId.of("IngressControl.update_state_table");
+        PiActionId.of("IngressControl.update_state_table");
     public static final PiActionId INGRESS_STATE_TABLE_NEW_ENTRY =
-            PiActionId.of("IngressControl.create_new_entry");
+        PiActionId.of("IngressControl.create_new_entry");
+
+    public static final PiActionId INGRESS_FWD4_TABLE_FORWARD =
+        PiActionId.of("IngressControl.ipv4_forward");
+    public static final PiActionId INGRESS_FWD4_TABLE_DROP =
+        PiActionId.of("IngressControl.drop");
+
+    public static final PiActionId NO_ACTION = PiActionId.of("NoAction");
+
+    // Action Param IDs
+    public static final PiActionParamId DST_MAC_ADDR = PiActionParamId.of("dstAddr");
+    public static final PiActionParamId EGRESS_PORT = PiActionParamId.of("port");
 }
